@@ -113,3 +113,14 @@ npm run dev
 - MY EVENT summary card added; mobile bottom quick navigation added.
 - Long secondary services collapsed under "전체 서비스 보기": FRICTION ZERO 요약, MY SHOW DAY 예시, AROUND, COMPANION TIME.
 - **EAT/ARENA ZONE은 접힘 영역이 아니라 PARK·TOILET·GO HOME과 함께 항상 노출됩니다** — 엑셀 원본(`ARENA_NOW_공연당일_문제해결_기획정리`)에서 "공연 전 먹거리"가 주차·화장실·귀가와 동일한 핵심(우선순위 최상위) 항목으로 분류되어 있어, 접힘 영역에 두면 우선순위 분류와 어긋납니다.
+
+## 2026-09-08 이미지 저작권 확인 결과
+서울아레나 실제 조감도(서울시 미디어허브, 서울균형발전포털 게재본)를 확인했으나
+모두 **공공누리 제4유형(출처표시+상업적 이용금지+변경금지)** 라이선스입니다.
+- 상업적 이용 금지 → SHOWDAY/ARENA NOW는 사업의 일부라 해당 조건에 걸림
+- 변경 금지 → 이미지 위에 상태·헤드라인·LIVE NOW를 오버레이하는 지금 구조 자체가 위반
+
+따라서 지금처럼 저작권 문제 없는 추상 일러스트를 계속 쓰고, 대신 다층 조명·
+구조 디테일(돔 내부 광원, 이중 헤일로 링, 관람객 불빛, 비네트)을 추가해
+완성도를 높였습니다. 실제 이미지가 필요하면 ㈜서울아레나(카카오) 또는
+서울시에 별도로 상업적 이용·변경 허락을 문의해야 합니다.

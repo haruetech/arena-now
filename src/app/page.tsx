@@ -14,6 +14,7 @@ import QuickActions from "@/components/arena/QuickActions";
 import PredictiveAI from "@/components/arena/PredictiveAI";
 import SmartAlertFeed from "@/components/arena/SmartAlertFeed";
 import LiveNowWidget from "@/components/arena/LiveNowWidget";
+import TodayShowCard from "@/components/arena/TodayShowCard";
 import LiveIssueBoard from "@/components/arena/LiveIssueBoard";
 import FrictionZeroSection from "@/components/arena/FrictionZeroSection";
 import ShowDayTimeline from "@/components/arena/ShowDayTimeline";
@@ -86,51 +87,72 @@ export default function ArenaNowPage() {
         </div>
         <button
           onClick={() => document.getElementById("live-issues")?.scrollIntoView({ behavior: "smooth" })}
-          className="arena-glass rounded-full px-3 py-1 text-[10px] tracking-wide text-[var(--arena-muted)]"
+          className="arena-glass flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] tracking-wide text-[var(--arena-muted)]"
         >
-          LIVE NOW
+          <span className="arena-pulse h-1.5 w-1.5 rounded-full bg-rose-400" />
+          <span className="font-bold text-white">LIVE NOW</span>
+          <span>{issues.filter((i) => i.severity !== "general").length}건</span>
+          <span>›</span>
         </button>
       </div>
 
       {/* HERO */}
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-10">
-        <div className="text-center">
-          <span className="arena-glass mb-3 inline-block rounded-full px-3 py-1 text-[10px] tracking-wide text-[var(--arena-muted)]">
-            CONCEPT PROTOTYPE
-          </span>
-          <p className="mb-4 text-xs text-[var(--arena-muted)]">
-            찾게 하지 않습니다. 지금 필요한 것을 먼저 보여드립니다.
-          </p>
+        <p
+          className="text-center text-sm font-bold tracking-tight"
+          style={{ fontFamily: "var(--arena-font-display)" }}
+        >
+          THE SHOW STARTS BEFORE THE SHOW.
+        </p>
 
-          <p
-            className={`mb-2 inline-block rounded-full px-4 py-1.5 text-xs tracking-widest ${current.pulse ? "arena-pulse" : ""}`}
-            style={{
-              fontFamily: "var(--arena-font-display)",
-              background: `${current.accent}22`,
-              color: current.accent,
-              border: `1px solid ${current.accent}55`,
-            }}
-          >
-            {badge}
-          </p>
-          <h1 className="whitespace-pre-line text-3xl leading-tight sm:text-4xl" style={{ fontFamily: "var(--arena-font-display)" }}>
-            {current.headline}
-          </h1>
-          <p className="mx-auto mt-3 max-w-sm text-sm text-[var(--arena-muted)]">{current.sub}</p>
+        <ArenaSkyline
+          accent={current.accent}
+          overlay={
+            <>
+              <div className="flex items-start justify-between">
+                <span className="arena-glass rounded-full px-3 py-1 text-[10px] tracking-wide text-[var(--arena-muted)]">
+                  CONCEPT PROTOTYPE
+                </span>
+                <div className="w-52 sm:w-60">
+                  <LiveNowWidget issues={issues} />
+                </div>
+              </div>
 
-          {currentAlert && (
-            <div className="arena-glass mx-auto mt-4 max-w-sm rounded-full px-4 py-2 text-xs">
-              <span style={{ color: current.accent }}>SMART ALERT</span>
-              <span className="text-[var(--arena-muted)]"> · {currentAlert.message}</span>
-            </div>
-          )}
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-full sm:w-auto sm:self-start">
+                  <TodayShowCard showStart={getExampleSchedule(new Date()).start} accent={current.accent} />
+                </div>
 
-          <div className="mt-4">
-            <LiveNowWidget issues={issues} />
-          </div>
-        </div>
+                <div className="text-center">
+                  <p
+                    className={`mb-2 inline-block rounded-full px-4 py-1.5 text-xs tracking-widest ${current.pulse ? "arena-pulse" : ""}`}
+                    style={{
+                      fontFamily: "var(--arena-font-display)",
+                      background: `${current.accent}22`,
+                      color: current.accent,
+                      border: `1px solid ${current.accent}55`,
+                    }}
+                  >
+                    {badge}
+                  </p>
+                  <h1
+                    className="whitespace-pre-line text-2xl leading-tight sm:text-4xl"
+                    style={{ fontFamily: "var(--arena-font-display)" }}
+                  >
+                    {current.headline}
+                  </h1>
+                  <p className="mx-auto mt-2 max-w-sm text-xs text-[var(--arena-muted)] sm:text-sm">{current.sub}</p>
 
-        <ArenaSkyline accent={current.accent} />
+                  {currentAlert && (
+                    <p className="mt-3 text-[11px] text-[var(--arena-muted)]">
+                      <span style={{ color: current.accent }}>SMART ALERT</span> · {currentAlert.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          }
+        />
 
         <div className="arena-glass rounded-2xl p-4" aria-label="MY EVENT 요약">
           <div className="flex items-center justify-between gap-3">
