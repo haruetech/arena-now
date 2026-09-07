@@ -1,26 +1,29 @@
-// ARENA NOW의 핵심 아이디어: "장소"가 아니라 "시간"에 따라 화면 전체가 바뀝니다.
-// 상태마다 색(긴급도)·헤드라인·행동유도가 완전히 달라집니다.
-// 실제 공연 일정이 붙기 전까지는 StateSwitcher로 직접 전환해보는 데모입니다.
-
+// 11단계로 세분화한 상태머신 (기존 7단계보다 촘촘하게).
+// 시간이 흐를수록 파랑(여유) → 노랑/주황(준비) → 빨강(긴급, 60분 전) →
+// 초록(입장) → 보라(공연 중) → 회색(종료)으로 색 자체가 긴급도를 표현합니다.
 export type ArenaStateKey =
   | "upcoming"
   | "tomorrow"
-  | "liveDay"
+  | "fiveHours"
+  | "fourHours"
   | "threeHours"
+  | "twoHours"
+  | "ninetyMinutes"
+  | "sixtyMinutes"
   | "doorsOpen"
   | "onStage"
   | "showEnded";
 
 export interface ArenaState {
   key: ArenaStateKey;
-  demoLabel: string; // 상태 전환 버튼에 쓰이는 짧은 이름
-  badge: string; // 화면 상단 뱃지 ("D-12", "LIVE DAY" 등)
+  demoLabel: string;
+  badge: string;
   headline: string;
   sub: string;
-  accent: string; // 상태별 강조색 (긴급도를 색으로 표현)
-  glow: string; // 배경 글로우 색
+  accent: string;
+  glow: string;
   cta: string;
-  pulse?: boolean; // 긴급 상태는 뱃지가 깜빡임
+  pulse?: boolean;
 }
 
 export const arenaStates: ArenaState[] = [
@@ -28,72 +31,112 @@ export const arenaStates: ArenaState[] = [
     key: "upcoming",
     demoLabel: "평소 (D-12)",
     badge: "NEXT SHOW · D-12",
-    headline: "다음 공연까지 12일",
-    sub: "미리 관심 등록하면 티켓 오픈과 동시에 알려드려요.",
+    headline: "공연 전 불편을 미리 없애세요",
+    sub: "주차·날씨·이동·짐보관을 미리 준비할수록 당일이 쉬워집니다.",
     accent: "#60a5fa",
     glow: "rgba(96, 165, 250, 0.25)",
-    cta: "이 공연 관심 등록하기",
+    cta: "미리 준비하기",
   },
   {
     key: "tomorrow",
     demoLabel: "공연 전날",
     badge: "TOMORROW",
-    headline: "내일, 서울아레나에 가시나요?",
-    sub: "가는 길·주차·좌석 정보를 미리 확인해보세요.",
+    headline: "내일의 SHOW DAY를 30초 만에 준비하세요",
+    sub: "날씨와 이동수단을 확인하고, 자가용이면 주차 후보부터 정해두세요.",
     accent: "#fbbf24",
     glow: "rgba(251, 191, 36, 0.25)",
-    cta: "MY SHOW DAY 미리 만들기",
+    cta: "내일 준비 체크",
   },
   {
-    key: "liveDay",
-    demoLabel: "공연 당일",
-    badge: "🔴 LIVE DAY",
-    headline: "오늘, 공연이 있는 날입니다",
-    sub: "03:21:47 UNTIL SHOW · 지금 출발하면 17:42 도착 예정",
-    accent: "#f43f5e",
-    glow: "rgba(244, 63, 94, 0.3)",
-    cta: "MY SHOW DAY 시작하기",
-    pulse: true,
+    key: "fiveHours",
+    demoLabel: "5시간 전",
+    badge: "5 HOURS TO SHOW",
+    headline: "자가용이라면 지금 주차부터 확인할 시간입니다",
+    sub: "공연장 60분 전 도착 기준으로 주차·출발·식사 동선을 먼저 정합니다.",
+    accent: "#fbbf24",
+    glow: "rgba(251, 191, 36, 0.28)",
+    cta: "주차 후보 3곳 보기",
+  },
+  {
+    key: "fourHours",
+    demoLabel: "4시간 전",
+    badge: "4 HOURS TO SHOW",
+    headline: "주차와 식사 동선을 지금 확정하세요",
+    sub: "검색하지 않아도 가장 현실적인 동선 3가지를 먼저 보여드립니다.",
+    accent: "#fb923c",
+    glow: "rgba(251, 146, 60, 0.28)",
+    cta: "내 동선 만들기",
   },
   {
     key: "threeHours",
-    demoLabel: "공연 3시간 전",
+    demoLabel: "3시간 전",
     badge: "3 HOURS TO SHOW",
-    headline: "공연 전 78분이 남았습니다",
-    sub: "지금 할 수 있는 것: 식사 · 카페 · 짐보관 · 부모 프로그램",
+    headline: "도착 후 무엇을 할지 미리 정해두세요",
+    sub: "주차가 미확정이면 지금 확인하고, 식사·짐보관·현장행사 순서를 제안합니다.",
     accent: "#fb923c",
-    glow: "rgba(251, 146, 60, 0.28)",
-    cta: "WHAT CAN I DO NOW? →",
+    glow: "rgba(251, 146, 60, 0.3)",
+    cta: "NOW AI 추천 보기",
+  },
+  {
+    key: "twoHours",
+    demoLabel: "2시간 전",
+    badge: "2 HOURS TO SHOW",
+    headline: "이제 공연장 쪽으로 이동할 시간입니다",
+    sub: "빠른 식사와 바로 이동 중 어느 쪽이 안전한지 보여드립니다.",
+    accent: "#fb7185",
+    glow: "rgba(251, 113, 133, 0.28)",
+    cta: "지금 해야 할 일 3개",
+  },
+  {
+    key: "ninetyMinutes",
+    demoLabel: "90분 전",
+    badge: "90 MINUTES TO SHOW",
+    headline: "공연장 주변에서 입장 준비를 시작하세요",
+    sub: "화장실·짐보관·MD·내 입구를 가까운 순서로 확인하세요.",
+    accent: "#f87171",
+    glow: "rgba(248, 113, 113, 0.28)",
+    cta: "현장 준비 보기",
+  },
+  {
+    key: "sixtyMinutes",
+    demoLabel: "60분 전",
+    badge: "60 MINUTES TO SHOW",
+    headline: "이제 먹거리보다 입장 준비가 우선입니다",
+    sub: "화장실·게이트·굿즈·혼잡 정보를 빠르게 확인하세요.",
+    accent: "#f43f5e",
+    glow: "rgba(244, 63, 94, 0.32)",
+    cta: "내 입장 준비",
+    pulse: true,
   },
   {
     key: "doorsOpen",
     demoLabel: "입장 시작",
     badge: "DOORS OPEN",
     headline: "입장이 시작됐습니다",
-    sub: "좌석 위치와 가장 가까운 입구를 안내해드려요.",
+    sub: "내 좌석과 가장 가까운 입구, 화장실, 반입 유의사항을 확인하세요.",
     accent: "#34d399",
     glow: "rgba(52, 211, 153, 0.28)",
-    cta: "내 입구 확인하기",
+    cta: "내 입구 찾기",
     pulse: true,
   },
   {
     key: "onStage",
     demoLabel: "공연 중",
     badge: "ON STAGE",
-    headline: "공연이 진행 중입니다",
-    sub: "부모님은 지금 3 HOURS 프로그램을 즐기고 계실 시간이에요.",
+    headline: "공연은 진행 중, 동행자의 시간은 계속됩니다",
+    sub: "COMPANION TIME과 종료 전 MEET POINT 준비를 한 화면에서 확인하세요.",
     accent: "#c026d3",
     glow: "rgba(192, 38, 211, 0.28)",
-    cta: "부모 프로그램 진행 상황 보기",
+    cta: "동행자 시간 보기",
   },
   {
     key: "showEnded",
     demoLabel: "공연 종료 후",
     badge: "SHOW ENDED",
-    headline: "오늘의 공연은 끝났지만,\n당신의 SHOW DAY는 아직 끝나지 않았습니다",
-    sub: "막차까지 01:42 · 지금 갈 수 있는 식당과 귀가 정보를 안내해드려요.",
+    headline: "지금 가장 편하게 빠져나가는 방법을 먼저 보여드립니다",
+    sub: "출차·대중교통·택시·만남·늦게 여는 식당을 상황별로 정리합니다.",
     accent: "#94a3b8",
     glow: "rgba(148, 163, 184, 0.22)",
-    cta: "귀가 정보 보기",
+    cta: "GO HOME 보기",
   },
 ];

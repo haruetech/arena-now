@@ -5,37 +5,39 @@ export interface ShowSchedule {
   end: Date;
 }
 
-// 운영 단계 기준값. 실제 공연 시작/종료시간이 연결되면 이 상수만으로
-// LIVE DAY → 3 HOURS TO SHOW → DOORS OPEN → ON STAGE → SHOW ENDED가
-// 자동으로 전환됩니다. DEMO 전환기는 이 계산과 별개로 항상 남겨둡니다.
-const DOORS_OPEN_BEFORE_MIN = 30;
-const THREE_HOURS_BEFORE_MIN = 180;
-
 export interface ComputedArenaState {
   key: ArenaStateKey;
   daysUntil: number;
+  minutesUntil: number;
 }
 
+const MIN = 60_000;
+
+// 운영 단계 기준값. 실제 공연 시작/종료시간이 연결되면 11단계 전환이
+// 이 함수 하나로 자동 처리됩니다. DEMO 전환기는 이 계산과 별개로 남겨둡니다.
 export function computeArenaState(now: Date, schedule: ShowSchedule): ComputedArenaState {
-  const minUntilStart = (schedule.start.getTime() - now.getTime()) / 60000;
+  const minutesUntil = Math.floor((schedule.start.getTime() - now.getTime()) / MIN);
 
-  if (now.getTime() >= schedule.end.getTime()) return { key: "showEnded", daysUntil: 0 };
-  if (now.getTime() >= schedule.start.getTime()) return { key: "onStage", daysUntil: 0 };
-  if (minUntilStart <= DOORS_OPEN_BEFORE_MIN) return { key: "doorsOpen", daysUntil: 0 };
-  if (minUntilStart <= THREE_HOURS_BEFORE_MIN) return { key: "threeHours", daysUntil: 0 };
-
+  if (now.getTime() >= schedule.end.getTime()) return { key: "showEnded", daysUntil: 0, minutesUntil };
+  if (now.getTime() >= schedule.start.getTime()) return { key: "onStage", daysUntil: 0, minutesUntil };
+  if (minutesUntil <= 30) return { key: "doorsOpen", daysUntil: 0, minutesUntil };
+  if (minutesUntil <= 60) return { key: "sixtyMinutes", daysUntil: 0, minutesUntil };
+  if (minutesUntil <= 90) return { key: "ninetyMinutes", daysUntil: 0, minutesUntil };
+  if (minutesUntil <= 120) return { key: "twoHours", daysUntil: 0, minutesUntil };
+  if (minutesUntil <= 180) return { key: "threeHours", daysUntil: 0, minutesUntil };
+  if (minutesUntil <= 240) return { key: "fourHours", daysUntil: 0, minutesUntil };
+  if (minutesUntil <= 300) return { key: "fiveHours", daysUntil: 0, minutesUntil };
   if (now.toDateString() === schedule.start.toDateString()) {
-    return { key: "liveDay", daysUntil: 0 };
+    return { key: "fiveHours", daysUntil: 0, minutesUntil };
   }
 
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   if (tomorrow.toDateString() === schedule.start.toDateString()) {
-    return { key: "tomorrow", daysUntil: 1 };
+    return { key: "tomorrow", daysUntil: 1, minutesUntil };
   }
 
-  const daysUntil = Math.max(1, Math.ceil(minUntilStart / (60 * 24)));
-  return { key: "upcoming", daysUntil };
+  return { key: "upcoming", daysUntil: Math.max(2, Math.ceil(minutesUntil / 1440)), minutesUntil };
 }
 
 /**

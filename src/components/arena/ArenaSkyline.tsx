@@ -15,11 +15,12 @@ interface Hotspot {
 }
 
 const hotspots: Hotspot[] = [
-  { id: "show", label: "SHOW", desc: "오늘 공연 정보", x: 50, y: 42, href: "#show" },
-  { id: "eat", label: "EAT", desc: "공연 전 식사", x: 24, y: 62, href: "#around" },
-  { id: "parents", label: "3 HOURS", desc: "부모의 3시간", x: 76, y: 58, href: "#parents" },
-  { id: "around", label: "AROUND", desc: "창동 둘러보기", x: 16, y: 82, href: "#around" },
-  { id: "after", label: "AFTER", desc: "공연 후 귀가", x: 84, y: 84, href: "#after" },
+  { id: "show", label: "SHOW", desc: "오늘 공연 정보", x: 50, y: 40, href: "#show" },
+  { id: "park", label: "PARK", desc: "주차 위치·요금", x: 18, y: 58, href: "#park" },
+  { id: "eat", label: "EAT", desc: "공연 전 식사·팝업", x: 82, y: 58, href: "#eat" },
+  { id: "toilet", label: "TOILET", desc: "안 붐비는 화장실", x: 30, y: 78, href: "#toilet" },
+  { id: "companion", label: "COMPANION", desc: "동행자의 시간", x: 70, y: 78, href: "#companion" },
+  { id: "home", label: "HOME", desc: "귀가·만남 장소", x: 50, y: 90, href: "#after" },
 ];
 
 export default function ArenaSkyline({ accent }: { accent: string }) {
