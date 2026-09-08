@@ -21,7 +21,7 @@ export default function LiveNowWidget({ issues }: { issues: LiveIssue[] }) {
   return (
     <a
       href="#live-issues"
-      className="arena-glass flex w-full flex-col gap-2 rounded-xl px-4 py-3 text-left transition-colors hover:border-white/30"
+      className="arena-glass mx-auto flex w-full max-w-sm flex-col gap-2 rounded-xl px-4 py-3 text-left transition-colors hover:border-white/30"
     >
       <div className="flex items-center gap-2">
         <span className="arena-pulse h-2 w-2 rounded-full bg-rose-400" />

@@ -75,29 +75,20 @@ const fallback: QuickAction[] = [
 export default function QuickActions({ state, accent }: { state: ArenaStateKey; accent: string }) {
   const actions = byState[state] ?? fallback;
   return (
-    <div className="mt-2" aria-label="지금 필요한 기능">
-      <p className="mb-2 text-xs text-[var(--arena-muted)]">지금 바로 가기</p>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {actions.map((a) => (
-          <a
-            href={a.href}
-            key={a.label}
-            className="arena-glass flex items-center gap-3 rounded-xl border border-white/10 p-3 text-left transition-colors hover:border-white/30 hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/30"
-          >
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base"
-              style={{ background: `${accent}22` }}
-            >
-              {a.icon}
-            </span>
-            <span className="flex-1 min-w-0">
-              <strong className="block truncate text-sm">{a.label}</strong>
-              <span className="block truncate text-[10px] text-[var(--arena-muted)]">{a.sub}</span>
-            </span>
-            <span className="shrink-0 text-[var(--arena-muted)]">›</span>
-          </a>
-        ))}
-      </div>
+    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="지금 필요한 기능">
+      {actions.map((a) => (
+        <a
+          href={a.href}
+          key={a.label}
+          className="arena-glass flex min-h-[90px] flex-col rounded-xl p-3 text-left transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-white/30"
+        >
+          <span className="text-base" style={{ color: accent }}>
+            {a.icon}
+          </span>
+          <strong className="mt-auto text-sm">{a.label}</strong>
+          <span className="mt-0.5 text-[10px] text-[var(--arena-muted)]">{a.sub}</span>
+        </a>
+      ))}
     </div>
   );
 }
