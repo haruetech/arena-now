@@ -128,3 +128,14 @@ body {
 @media (max-width: 767px) {
   .arena-scope { padding-bottom: 74px; }
 }
+
+/* Desktop one-view landing dashboard */
+@media (min-width: 1024px) {
+  #desktop-dashboard {
+    min-height: 820px;
+  }
+  #desktop-dashboard img {
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+}

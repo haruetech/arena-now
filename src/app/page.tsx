@@ -30,6 +30,7 @@ import PromoBanner from "@/components/arena/PromoBanner";
 import SiteFooter from "@/components/arena/SiteFooter";
 import FloatingNavigator from "@/components/arena/FloatingNavigator";
 import PremiumHero from "@/components/arena/PremiumHero";
+import DesktopDashboard from "@/components/arena/DesktopDashboard";
 import { DEFAULT_HERO_COPY, HeroCopy } from "@/lib/arena/heroCopy";
 
 const SHOWDAY_URL = "https://showday.kr";
@@ -70,7 +71,9 @@ export default function ArenaNowPage() {
     <main id="top" className="relative overflow-x-clip">
       <div className="pointer-events-none fixed inset-0 -z-10" style={{ background: `radial-gradient(ellipse 60% 32% at 50% 0%, ${current.glow}, transparent 72%), #040914` }} />
 
-      <header className="sticky top-0 z-[80] border-b border-white/8 bg-[#06111e]/88 backdrop-blur-xl">
+      <DesktopDashboard />
+
+      <header className="sticky top-0 z-[80] border-b border-white/8 bg-[#06111e]/88 backdrop-blur-xl lg:hidden">
         <div className="mx-auto flex h-[72px] w-full max-w-[1600px] items-center gap-5 px-4 sm:px-6 lg:px-8">
           <a href="#top" className="mr-auto min-w-0">
             <div className="text-lg font-black tracking-[.05em] text-white sm:text-2xl" style={{ fontFamily: "var(--arena-font-display)" }}>
@@ -106,9 +109,10 @@ export default function ArenaNowPage() {
         )}
       </header>
 
-      <PremiumHero copy={heroCopy} accent={current.accent} showStart={showStart} />
+      <div className="lg:hidden"><PremiumHero copy={heroCopy} accent={current.accent} showStart={showStart} /></div>
 
-      <section id="show" className="mx-auto w-full max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8">
+      <section id="show" className="mx-auto w-full max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8 lg:pt-10">
+        <div id="service-detail" className="scroll-mt-24" />
         <div className="grid gap-3 lg:grid-cols-3">
           <TodayShowCard showStart={showStart} accent={current.accent} />
           <LiveNowWidget issues={issues} />
