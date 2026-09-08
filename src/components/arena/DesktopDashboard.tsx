@@ -1,5 +1,7 @@
 "use client";
 
+import WeatherWidget from "./WeatherWidget";
+
 /**
  * Desktop one-view dashboard.
  *
@@ -63,6 +65,11 @@ export default function DesktopDashboard() {
           className="absolute inset-0 h-full w-full object-cover object-top"
           draggable={false}
         />
+
+        {/* 배경 시안의 데모 날씨를 실제 기상청 관측 위젯으로 덮어 표시합니다. */}
+        <div className="absolute right-[2.2%] top-[1.1%] z-30">
+          <WeatherWidget desktop />
+        </div>
 
         {/* Real web controls positioned over the approved one-view composition. */}
         <nav aria-label="메인 대시보드 바로가기" className="absolute inset-0 z-10">
