@@ -8,7 +8,7 @@ const chips = [
 // 하단 프로모션 배너 — 공연 전후 부가 서비스로 자연스럽게 유도.
 export default function PromoBanner({ accent }: { accent: string }) {
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-4">
+    <div className="mx-auto w-full max-w-[1560px] px-4 py-4 sm:px-6 lg:px-8">
       <div className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
         <a
           href="#eat"

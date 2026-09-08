@@ -1,9 +1,5 @@
 "use client";
 
-// 상단 네비게이션 라벨, 핫스팟 라벨/설명 등 "상태와 무관하게 고정된" 텍스트만
-// 편집 대상으로 삼습니다. 시간대별로 자동 바뀌는 헤드라인·배지(states.ts)는
-// 상태머신의 핵심이라 이 편집 대상에 포함하지 않습니다.
-
 export interface HeroCopy {
   navShow: string;
   navRoute: string;
@@ -12,6 +8,12 @@ export interface HeroCopy {
   navAi: string;
   navMy: string;
   liveLabel: string;
+  heroEyebrow: string;
+  heroTitle1: string;
+  heroTitle2: string;
+  heroSub: string;
+  heroCta: string;
+  footerTagline: string;
   pinShowLabel: string;
   pinShowDesc: string;
   pinParkLabel: string;
@@ -31,9 +33,15 @@ export const DEFAULT_HERO_COPY: HeroCopy = {
   navRoute: "가는길",
   navFood: "주변맛집",
   navService: "현장서비스",
-  navAi: "AI추천",
+  navAi: "AI 추천",
   navMy: "MY EVENT",
   liveLabel: "LIVE NOW",
+  heroEyebrow: "MUSIC BRINGS US TOGETHER",
+  heroTitle1: "공연이 있는 날,",
+  heroTitle2: "더 특별한 하루",
+  heroSub: "공연부터 먹거리, 주차, 교통, 현장서비스까지\nARENA NOW가 함께합니다.",
+  heroCta: "지금 공연 정보 보기",
+  footerTagline: "Your Stage, Our Day",
   pinShowLabel: "SHOW",
   pinShowDesc: "오늘 공연 정보",
   pinParkLabel: "PARK",
@@ -41,14 +49,14 @@ export const DEFAULT_HERO_COPY: HeroCopy = {
   pinEatLabel: "EAT",
   pinEatDesc: "공연 전 식사·팝업",
   pinToiletLabel: "TOILET",
-  pinToiletDesc: "안 붐비는 화장실",
+  pinToiletDesc: "가까운 화장실",
   pinCompanionLabel: "COMPANION",
   pinCompanionDesc: "동행자의 시간",
   pinHomeLabel: "HOME",
   pinHomeDesc: "귀가·만남 장소",
 };
 
-const KEY = "arena-hero-copy-v1";
+const KEY = "arena-hero-copy-v2";
 
 export function loadHeroCopy(): HeroCopy {
   if (typeof window === "undefined") return DEFAULT_HERO_COPY;

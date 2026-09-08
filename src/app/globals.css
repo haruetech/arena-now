@@ -102,3 +102,29 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Premium homepage refinements */
+.arena-scope {
+  background:
+    radial-gradient(900px 520px at 50% -80px, rgba(52, 136, 255, .12), transparent 70%),
+    #040914;
+}
+.arena-scope a,
+.arena-scope button { -webkit-tap-highlight-color: transparent; }
+.arena-scope a:focus-visible,
+.arena-scope button:focus-visible,
+.arena-scope input:focus-visible,
+.arena-scope textarea:focus-visible {
+  outline: 2px solid #67e8f9;
+  outline-offset: 2px;
+}
+.arena-live-card {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 24px 72px rgba(0,0,0,.38);
+}
+@media (min-width: 1280px) {
+  .arena-scope .arena-glass,
+  .arena-scope .arena-glass-strong { border-color: rgba(80, 190, 255, .18); }
+}
+@media (max-width: 767px) {
+  .arena-scope { padding-bottom: 74px; }
+}
