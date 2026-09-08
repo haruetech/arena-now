@@ -3,18 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { arenaStates, ArenaStateKey } from "@/lib/arena/states";
 import { computeArenaState, getExampleSchedule } from "@/lib/arena/schedule";
-import { alertMoments, getAlertIndex } from "@/lib/arena/alerts";
 import { getPredictions, TransportMode } from "@/lib/arena/predict";
 import { LiveIssue, seedLiveIssues } from "@/lib/arena/liveIssues";
-import ArenaSkyline from "@/components/arena/ArenaSkyline";
+import EditableArenaHero from "@/components/arena/EditableArenaHero";
 import StateSwitcher from "@/components/arena/StateSwitcher";
 import ModeSwitcher, { ArenaMode } from "@/components/arena/ModeSwitcher";
 import TransportSelector from "@/components/arena/TransportSelector";
 import QuickActions from "@/components/arena/QuickActions";
 import PredictiveAI from "@/components/arena/PredictiveAI";
 import SmartAlertFeed from "@/components/arena/SmartAlertFeed";
-import LiveNowWidget from "@/components/arena/LiveNowWidget";
-import TodayShowCard from "@/components/arena/TodayShowCard";
 import LiveIssueBoard from "@/components/arena/LiveIssueBoard";
 import FrictionZeroSection from "@/components/arena/FrictionZeroSection";
 import ShowDayTimeline from "@/components/arena/ShowDayTimeline";
@@ -62,7 +59,6 @@ export default function ArenaNowPage() {
 
   const stateKey = mode === "auto" ? autoResult.key : demoKey;
   const current = arenaStates.find((s) => s.key === stateKey)!;
-  const currentAlert = alertMoments[getAlertIndex(stateKey)];
   const badge =
     mode === "auto" && stateKey === "upcoming"
       ? `NEXT SHOW · D-${autoResult.daysUntil}`
@@ -76,85 +72,15 @@ export default function ArenaNowPage() {
         style={{ background: `radial-gradient(ellipse 55% 32% at 50% 6%, ${current.glow}, transparent 72%), var(--arena-bg)` }}
       />
 
-      {/* 상단 바 */}
-      <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-6 pt-6">
-        <a href={SHOWDAY_URL} className="text-xs text-[var(--arena-muted)] hover:text-[var(--arena-text)]">
-          ← SHOWDAY
-        </a>
-        <div className="text-center">
-          <p className="text-xs font-bold" style={{ fontFamily: "var(--arena-font-display)" }}>ARENA NOW</p>
-          <p className="text-[9px] tracking-widest text-[var(--arena-muted)]">EVENT-DAY OS</p>
-        </div>
-        <button
-          onClick={() => document.getElementById("live-issues")?.scrollIntoView({ behavior: "smooth" })}
-          className="arena-glass flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] tracking-wide text-[var(--arena-muted)]"
-        >
-          <span className="arena-pulse h-1.5 w-1.5 rounded-full bg-rose-400" />
-          <span className="font-bold text-white">LIVE NOW</span>
-          <span>{issues.filter((i) => i.severity !== "general").length}건</span>
-          <span>›</span>
-        </button>
-      </div>
+      <EditableArenaHero
+        accent={current.accent}
+        badge={badge}
+        issues={issues}
+        showStart={getExampleSchedule(new Date()).start}
+      />
 
-      {/* HERO */}
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-10">
-        <p
-          className="text-center text-sm font-bold tracking-tight"
-          style={{ fontFamily: "var(--arena-font-display)" }}
-        >
-          THE SHOW STARTS BEFORE THE SHOW.
-        </p>
-
-        <ArenaSkyline
-          accent={current.accent}
-          overlay={
-            <>
-              <div className="flex items-start justify-between">
-                <span className="arena-glass rounded-full px-3 py-1 text-[10px] tracking-wide text-[var(--arena-muted)]">
-                  CONCEPT PROTOTYPE
-                </span>
-                <div className="w-52 sm:w-60">
-                  <LiveNowWidget issues={issues} />
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-full sm:w-auto sm:self-start">
-                  <TodayShowCard showStart={getExampleSchedule(new Date()).start} accent={current.accent} />
-                </div>
-
-                <div className="text-center">
-                  <p
-                    className={`mb-2 inline-block rounded-full px-4 py-1.5 text-xs tracking-widest ${current.pulse ? "arena-pulse" : ""}`}
-                    style={{
-                      fontFamily: "var(--arena-font-display)",
-                      background: `${current.accent}22`,
-                      color: current.accent,
-                      border: `1px solid ${current.accent}55`,
-                    }}
-                  >
-                    {badge}
-                  </p>
-                  <h1
-                    className="whitespace-pre-line text-2xl leading-tight sm:text-4xl"
-                    style={{ fontFamily: "var(--arena-font-display)" }}
-                  >
-                    {current.headline}
-                  </h1>
-                  <p className="mx-auto mt-2 max-w-sm text-xs text-[var(--arena-muted)] sm:text-sm">{current.sub}</p>
-
-                  {currentAlert && (
-                    <p className="mt-3 text-[11px] text-[var(--arena-muted)]">
-                      <span style={{ color: current.accent }}>SMART ALERT</span> · {currentAlert.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </>
-          }
-        />
-
-        <div className="arena-glass rounded-2xl p-4" aria-label="MY EVENT 요약">
+        <div id="my-event" className="arena-glass rounded-2xl p-4" aria-label="MY EVENT 요약">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] tracking-widest text-[var(--arena-muted)]">MY EVENT</p>
