@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ARENA NOW | 공연 당일의 모든 순간",
+  title: "ARENA NOW — THE SHOW STARTS BEFORE THE SHOW.",
   description:
-    "공연정보부터 주차, 먹거리, 현장서비스, LIVE NOW, AI 추천, 귀가까지 공연 당일의 불편을 줄이는 ARENA NOW입니다.",
+    "공연 시작 전부터 공연 후 귀가까지, 공연 가는 하루를 시간과 상황으로 설계하는 SHOWDAY의 아레나 경험 컨셉 프로토타입입니다.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DEFAULT_HERO_COPY, HeroCopy } from "@/lib/arena/heroCopy";
 
 // 서울아레나를 그대로 복제하지 않은, 미래형 K-POP 아레나 컨셉 일러스트입니다.
 // (docs/arena-now-vision.md 참고 — 운영 단계에서는 사용 허가 이미지로 교체)
@@ -16,26 +17,31 @@ interface Hotspot {
   href: string;
 }
 
-const hotspots: Hotspot[] = [
-  { id: "show", icon: "🎤", label: "SHOW", desc: "오늘 공연 정보", color: "#a78bfa", x: 50, y: 34, href: "#show" },
-  { id: "park", icon: "🅿️", label: "PARK", desc: "주차 위치·요금", color: "#818cf8", x: 16, y: 56, href: "#park" },
-  { id: "eat", icon: "🍴", label: "EAT", desc: "공연 전 식사·팝업", color: "#34d399", x: 84, y: 52, href: "#eat" },
-  { id: "toilet", icon: "🚻", label: "TOILET", desc: "안 붐비는 화장실", color: "#60a5fa", x: 88, y: 72, href: "#toilet" },
-  { id: "companion", icon: "👥", label: "COMPANION", desc: "동행자의 시간", color: "#f472b6", x: 68, y: 82, href: "#companion" },
-  { id: "home", icon: "🚕", label: "HOME", desc: "귀가·만남 장소", color: "#fbbf24", x: 30, y: 82, href: "#after" },
-];
+function buildHotspots(copy: HeroCopy): Hotspot[] {
+  return [
+    { id: "show", icon: "🎤", label: copy.pinShowLabel, desc: copy.pinShowDesc, color: "#a78bfa", x: 62, y: 26, href: "#show" },
+    { id: "park", icon: "🅿️", label: copy.pinParkLabel, desc: copy.pinParkDesc, color: "#818cf8", x: 48, y: 50, href: "#park" },
+    { id: "eat", icon: "🍴", label: copy.pinEatLabel, desc: copy.pinEatDesc, color: "#34d399", x: 80, y: 44, href: "#eat" },
+    { id: "toilet", icon: "🚻", label: copy.pinToiletLabel, desc: copy.pinToiletDesc, color: "#60a5fa", x: 90, y: 64, href: "#toilet" },
+    { id: "companion", icon: "👥", label: copy.pinCompanionLabel, desc: copy.pinCompanionDesc, color: "#f472b6", x: 68, y: 78, href: "#companion" },
+    { id: "home", icon: "🚕", label: copy.pinHomeLabel, desc: copy.pinHomeDesc, color: "#fbbf24", x: 52, y: 78, href: "#after" },
+  ];
+}
 
 export default function ArenaSkyline({
   accent,
   overlay,
+  heroCopy = DEFAULT_HERO_COPY,
 }: {
   accent: string;
   overlay?: React.ReactNode;
+  heroCopy?: HeroCopy;
 }) {
   const [active, setActive] = useState<string | null>(null);
+  const hotspots = buildHotspots(heroCopy);
 
   return (
-    <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-[var(--arena-border)] sm:aspect-[16/11]">
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-[var(--arena-border)] sm:aspect-[16/9]">
       <svg
         viewBox="0 0 400 250"
         className="absolute inset-0 h-full w-full"
@@ -181,6 +187,11 @@ export default function ArenaSkyline({
       <div
         className="pointer-events-none absolute inset-0"
         style={{ background: "linear-gradient(to top, rgba(5,6,10,0.92) 0%, rgba(5,6,10,0.35) 45%, transparent 75%)" }}
+      />
+      {/* 좌측 스크림 — 데스크톱 헤드라인 구역 가독성 확보 (모바일에선 헤드라인이 이미지 밖에 있어 무해) */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "linear-gradient(to right, rgba(5,6,10,0.85) 0%, rgba(5,6,10,0.25) 42%, transparent 62%)" }}
       />
 
       {/* Hotspots — 핀 + 아이콘 + 라벨을 항상 보여주고, 클릭하면 설명이 펼쳐집니다 */}

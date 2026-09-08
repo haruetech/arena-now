@@ -1,217 +1,378 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getExampleSchedule } from "@/lib/arena/schedule";
+import { arenaStates, ArenaStateKey } from "@/lib/arena/states";
+import { computeArenaState, getExampleSchedule } from "@/lib/arena/schedule";
+import { alertMoments, getAlertIndex } from "@/lib/arena/alerts";
 import { getPredictions, TransportMode } from "@/lib/arena/predict";
-import { seedLiveIssues, LiveIssue } from "@/lib/arena/liveIssues";
+import { LiveIssue, seedLiveIssues } from "@/lib/arena/liveIssues";
+import ArenaSkyline from "@/components/arena/ArenaSkyline";
+import StateSwitcher from "@/components/arena/StateSwitcher";
+import ModeSwitcher, { ArenaMode } from "@/components/arena/ModeSwitcher";
+import TransportSelector from "@/components/arena/TransportSelector";
+import QuickActions from "@/components/arena/QuickActions";
+import PredictiveAI from "@/components/arena/PredictiveAI";
+import SmartAlertFeed from "@/components/arena/SmartAlertFeed";
+import LiveNowWidget from "@/components/arena/LiveNowWidget";
+import TodayShowCard from "@/components/arena/TodayShowCard";
 import LiveIssueBoard from "@/components/arena/LiveIssueBoard";
+import FrictionZeroSection from "@/components/arena/FrictionZeroSection";
+import ShowDayTimeline from "@/components/arena/ShowDayTimeline";
 import ParkSection from "@/components/arena/ParkSection";
 import EatArenaZoneSection from "@/components/arena/EatArenaZoneSection";
 import ToiletNowSection from "@/components/arena/ToiletNowSection";
-import GoHomeSection from "@/components/arena/GoHomeSection";
+import AroundChips from "@/components/arena/AroundChips";
 import CompanionTimeSection from "@/components/arena/CompanionTimeSection";
+import GoHomeSection from "@/components/arena/GoHomeSection";
 import VoiceBoard from "@/components/arena/VoiceBoard";
+import CopyEditor from "@/components/arena/CopyEditor";
+import WeatherWidget from "@/components/arena/WeatherWidget";
+import AiRecommendCard from "@/components/arena/AiRecommendCard";
+import PromoBanner from "@/components/arena/PromoBanner";
+import SiteFooter from "@/components/arena/SiteFooter";
+import FloatingNavigator from "@/components/arena/FloatingNavigator";
+import { DEFAULT_HERO_COPY, HeroCopy } from "@/lib/arena/heroCopy";
+
+// ARENA NOW — arena.showday.kr 전용 독립 앱.
+// 포지셔닝: 공연정보 사이트가 아니라 "공연 당일 실제 불편을 줄이는 Event-Day OS".
+//
+// 두 축의 개인화:
+// - 상태(11단계, states.ts/schedule.ts): 지금이 언제인지
+// - 이동수단(TransportMode, predict.ts): 어떻게 오는지
+// 이 둘을 합쳐 NOW AI(PredictiveAI)가 "지금 뭘 하면 좋을지" 3가지로 압축합니다.
 
 const SHOWDAY_URL = "https://showday.kr";
 
-const quickMenus = [
-  { icon: "🚗", title: "가는길", sub: "대중교통·주차", target: "park", tone: "cyan" },
-  { icon: "🍴", title: "주변맛집", sub: "공연 전후 맛집", target: "eat", tone: "cyan" },
-  { icon: "👜", title: "현장서비스", sub: "짐보관·편의시설", target: "toilet", tone: "violet" },
-  { icon: "🤖", title: "AI 추천", sub: "지금 필요한 정보", target: "ai-panel", tone: "blue" },
-  { icon: "🎙", title: "LIVE NOW", sub: "실시간 현장 소식", target: "live-issues", tone: "blue" },
-  { icon: "💗", title: "MY EVENT", sub: "나의 공연 일정", target: "my-event", tone: "pink" },
-];
-
-const defaultCopy = {
-  eyebrow: "MUSIC BRINGS US TOGETHER",
-  title1: "공연이 있는 날,",
-  title2: "더 특별한 하루",
-  subtitle: "공연부터 먹거리, 주차, 교통, 현장서비스까지\nARENA NOW가 함께합니다.",
-  button: "지금 공연 정보 보기",
-};
-
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
 export default function ArenaNowPage() {
+  const [mode, setMode] = useState<ArenaMode>("demo");
+  const [demoKey, setDemoKey] = useState<ArenaStateKey>("fiveHours");
+  const [transport, setTransport] = useState<TransportMode | null>(null);
+  const [autoResult, setAutoResult] = useState(() => computeArenaState(new Date(), getExampleSchedule(new Date())));
   const [issues, setIssues] = useState<LiveIssue[]>(() => seedLiveIssues(Date.now()));
-  const [transport, setTransport] = useState<TransportMode>("transit");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [copy, setCopy] = useState(defaultCopy);
+  const [nowOpen, setNowOpen] = useState(false);
+  const [heroCopy, setHeroCopy] = useState<HeroCopy>(DEFAULT_HERO_COPY);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const savedTransport = window.localStorage.getItem("arena-transport") as TransportMode | null;
-    if (savedTransport === "car" || savedTransport === "transit" || savedTransport === "taxi") setTransport(savedTransport);
-    const savedCopy = window.localStorage.getItem("arena-hero-copy");
-    if (savedCopy) {
-      try { setCopy({ ...defaultCopy, ...JSON.parse(savedCopy) }); } catch {}
-    }
+    const saved = window.localStorage.getItem("arena-transport") as TransportMode | null;
+    if (saved === "car" || saved === "transit" || saved === "taxi") setTransport(saved);
   }, []);
-
   useEffect(() => {
-    window.localStorage.setItem("arena-transport", transport);
+    if (transport) window.localStorage.setItem("arena-transport", transport);
   }, [transport]);
 
-  const schedule = useMemo(() => getExampleSchedule(new Date()), []);
-  const predictions = useMemo(() => getPredictions("fiveHours", transport), [transport]);
-  const activeIssues = issues.filter((i) => i.severity !== "general").slice(0, 3);
+  useEffect(() => {
+    if (mode !== "auto") return;
+    const tick = () => setAutoResult(computeArenaState(new Date(), getExampleSchedule(new Date())));
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [mode]);
 
-  const saveCopy = () => {
-    window.localStorage.setItem("arena-hero-copy", JSON.stringify(copy));
-    setSettingsOpen(false);
-  };
+  const stateKey = mode === "auto" ? autoResult.key : demoKey;
+  const current = arenaStates.find((s) => s.key === stateKey)!;
+  const currentAlert = alertMoments[getAlertIndex(stateKey)];
+  const badge =
+    mode === "auto" && stateKey === "upcoming"
+      ? `NEXT SHOW · D-${autoResult.daysUntil}`
+      : current.badge;
+  const predictions = useMemo(() => transport ? getPredictions(stateKey, transport) : [], [stateKey, transport]);
 
   return (
-    <main className="arena-home">
-      <header className="arena-topbar">
-        <div className="arena-topbar-inner">
-          <a href={SHOWDAY_URL} className="arena-brand" aria-label="SHOWDAY로 이동">
-            <strong>ARENA <span>NOW</span></strong>
-            <small>CHANGDONG SEOUL ARENA</small>
+    <main id="top" className="relative">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 transition-colors duration-700"
+        style={{ background: `radial-gradient(ellipse 55% 32% at 50% 6%, ${current.glow}, transparent 72%), var(--arena-bg)` }}
+      />
+
+      {/* 상단 바 */}
+      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-6 pt-6">
+        <div className="flex flex-col">
+          <p className="text-xs font-bold leading-none" style={{ fontFamily: "var(--arena-font-display)" }}>
+            ARENA NOW
+          </p>
+          <a href={SHOWDAY_URL} className="mt-1 text-[9px] tracking-widest text-[var(--arena-muted)] hover:text-[var(--arena-text)]">
+            ← SHOWDAY
           </a>
-          <nav className="arena-main-nav" aria-label="메인 메뉴">
-            <button onClick={() => scrollToId("today-show")}>공연정보</button>
-            <button onClick={() => scrollToId("park")}>가는길</button>
-            <button onClick={() => scrollToId("eat")}>주변맛집</button>
-            <button onClick={() => scrollToId("toilet")}>현장서비스</button>
-            <button onClick={() => scrollToId("ai-panel")}>AI 추천</button>
-            <button onClick={() => scrollToId("my-event")}>MY EVENT</button>
-          </nav>
-          <div className="arena-top-actions">
-            <button className="arena-icon-btn" aria-label="검색">⌕</button>
-            <button className="arena-icon-btn" aria-label="내 정보">♙</button>
-            <button className="arena-live-pill" onClick={() => scrollToId("live-issues")}><i /> LIVE NOW</button>
-            <div className="arena-weather"><span>☀️</span><b>18°C</b><small>서울·도봉구</small></div>
-          </div>
         </div>
-      </header>
 
-      <section className="arena-hero">
-        <div className="arena-hero-bg" aria-hidden="true" />
-        <div className="arena-hero-shade" />
-        <div className="arena-hero-content">
-          <div className="arena-hero-copy">
-            <p className="arena-eyebrow">{copy.eyebrow}</p>
-            <h1>{copy.title1}<br /><span>{copy.title2}</span></h1>
-            <p className="arena-subcopy">{copy.subtitle.split("\n").map((line, i) => <span key={i}>{line}<br /></span>)}</p>
-            <button className="arena-gradient-btn" onClick={() => scrollToId("today-show")}>{copy.button} <b>→</b></button>
-          </div>
+        <nav className="hidden items-center gap-5 text-[11px] text-[var(--arena-muted)] sm:flex" aria-label="주 메뉴">
+          <a href="#show" className="hover:text-white">{heroCopy.navShow}</a>
+          <a href="#transport" className="hover:text-white">{heroCopy.navRoute}</a>
+          <a href="#eat" className="hover:text-white">{heroCopy.navFood}</a>
+          <a href="#painpoints" className="hover:text-white">{heroCopy.navService}</a>
+          <a href="#now-ai" className="hover:text-white">{heroCopy.navAi}</a>
+          <a href="#my-event" className="hover:text-white">{heroCopy.navMy}</a>
+        </nav>
 
-          <aside className="arena-show-card" aria-label="다음 공연">
-            <div className="arena-show-head"><span><i /> LIVE NOW</span><small>공연 진행 중</small></div>
-            <p className="arena-label">오늘의 공연</p>
-            <h2>K-POP SPECIAL CONCERT <em>DEMO</em></h2>
-            <div className="arena-countdown"><b>05</b><span>:</span><b>12</b><span>:</span><b>30</b></div>
-            <div className="arena-count-labels"><span>HOURS</span><span>MINS</span><span>SECS</span></div>
-            <dl>
-              <div><dt>▣</dt><dd>2026. 03. 15 (일) 19:00</dd></div>
-              <div><dt>●</dt><dd>서울아레나(창동) · DEMO</dd></div>
-            </dl>
-            <button onClick={() => scrollToId("today-show")}>공연 상세보기 <b>→</b></button>
-          </aside>
+        <button
+          onClick={() => document.getElementById("live-issues")?.scrollIntoView({ behavior: "smooth" })}
+          className="arena-glass flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[10px] tracking-wide text-[var(--arena-muted)]"
+        >
+          <span className="arena-pulse h-1.5 w-1.5 rounded-full bg-rose-400" />
+          <span className="font-bold text-white">{heroCopy.liveLabel}</span>
+          <span>{issues.filter((i) => i.severity !== "general").length}건</span>
+          <span>›</span>
+        </button>
+
+        <WeatherWidget />
+
+        <button
+          onClick={() => setMobileMenuOpen((v) => !v)}
+          aria-label="메뉴 열기"
+          className="arena-glass flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm sm:hidden"
+        >
+          ☰
+        </button>
+      </div>
+
+      {mobileMenuOpen && (
+        <div className="mx-auto mb-2 grid w-full max-w-4xl grid-cols-2 gap-2 px-6 sm:hidden">
+          {[
+            { label: heroCopy.navShow, href: "#show" },
+            { label: heroCopy.navRoute, href: "#transport" },
+            { label: heroCopy.navFood, href: "#eat" },
+            { label: heroCopy.navService, href: "#painpoints" },
+            { label: heroCopy.navAi, href: "#now-ai" },
+            { label: heroCopy.navMy, href: "#my-event" },
+          ].map((l) => (
+            <a
+              key={l.label}
+              href={l.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="arena-glass rounded-lg px-3 py-2 text-center text-xs"
+            >
+              {l.label}
+            </a>
+          ))}
         </div>
-      </section>
+      )}
 
-      <section className="arena-dashboard-wrap">
-        <div className="arena-quick-grid" aria-label="빠른 서비스">
-          {quickMenus.map((item) => (
-            <button key={item.title} className={`arena-quick-card tone-${item.tone}`} onClick={() => scrollToId(item.target)}>
-              <span className="arena-quick-icon">{item.icon}</span>
-              <span><b>{item.title}</b><small>{item.sub}</small></span>
-              <i>›</i>
-            </button>
+      {/* HERO */}
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-10">
+        <p
+          className="text-center text-sm font-bold tracking-tight sm:hidden"
+          style={{ fontFamily: "var(--arena-font-display)" }}
+        >
+          THE SHOW STARTS BEFORE THE SHOW.
+        </p>
+
+        {/*
+          모바일: 이미지엔 태그+핀만 (겹침 방지, 안전).
+          데스크톱(sm+): 왼쪽에 헤드라인, 오른쪽 위에 TODAY SHOW 카드를 이미지 위에 얹습니다.
+          핀은 ArenaSkyline 내부에서 오른쪽 구역(x 48~90)에만 배치되어 있어 왼쪽 텍스트와 겹치지 않습니다.
+        */}
+        <ArenaSkyline
+          accent={current.accent}
+          heroCopy={heroCopy}
+          overlay={
+            <div className="flex h-full flex-col justify-between">
+              <div className="flex items-start justify-between gap-3">
+                <span className="arena-glass rounded-full px-3 py-1 text-[10px] tracking-wide text-[var(--arena-muted)]">
+                  CONCEPT PROTOTYPE
+                </span>
+                <div className="hidden w-72 shrink-0 sm:block">
+                  <TodayShowCard showStart={getExampleSchedule(new Date()).start} accent={current.accent} compact />
+                </div>
+              </div>
+
+              <div className="hidden max-w-md sm:block">
+                <p className="mb-2 text-xs font-bold tracking-tight" style={{ fontFamily: "var(--arena-font-display)" }}>
+                  THE SHOW STARTS BEFORE THE SHOW.
+                </p>
+                <p
+                  className={`mb-2 inline-block rounded-full px-4 py-1.5 text-xs tracking-widest ${current.pulse ? "arena-pulse" : ""}`}
+                  style={{
+                    fontFamily: "var(--arena-font-display)",
+                    background: `${current.accent}22`,
+                    color: current.accent,
+                    border: `1px solid ${current.accent}55`,
+                  }}
+                >
+                  {badge}
+                </p>
+                <h1 className="whitespace-pre-line text-3xl leading-tight lg:text-4xl" style={{ fontFamily: "var(--arena-font-display)" }}>
+                  {current.headline}
+                </h1>
+                <p className="mt-2 max-w-sm text-sm text-[var(--arena-muted)]">{current.sub}</p>
+                {currentAlert && (
+                  <p className="mt-3 text-[11px] text-[var(--arena-muted)]">
+                    <span style={{ color: current.accent }}>SMART ALERT</span> · {currentAlert.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          }
+        />
+
+        {/* 상태 배지 · 헤드라인 · 서브텍스트 — 모바일 전용 (데스크톱은 이미지 위 왼쪽 블록으로 대체) */}
+        <div className="text-center sm:hidden">
+          <p
+            className={`mb-2 inline-block rounded-full px-4 py-1.5 text-xs tracking-widest ${current.pulse ? "arena-pulse" : ""}`}
+            style={{
+              fontFamily: "var(--arena-font-display)",
+              background: `${current.accent}22`,
+              color: current.accent,
+              border: `1px solid ${current.accent}55`,
+            }}
+          >
+            {badge}
+          </p>
+          <h1
+            className="whitespace-pre-line text-2xl leading-tight"
+            style={{ fontFamily: "var(--arena-font-display)" }}
+          >
+            {current.headline}
+          </h1>
+          <p className="mx-auto mt-2 max-w-sm text-xs text-[var(--arena-muted)]">{current.sub}</p>
+
+          {currentAlert && (
+            <p className="mt-3 text-[11px] text-[var(--arena-muted)]">
+              <span style={{ color: current.accent }}>SMART ALERT</span> · {currentAlert.message}
+            </p>
+          )}
+        </div>
+
+        {/* TODAY SHOW · LIVE NOW · AI 추천 — 3단 그리드 (모바일은 세로로 쌓임) */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:hidden">
+            <TodayShowCard showStart={getExampleSchedule(new Date()).start} accent={current.accent} />
+          </div>
+          <LiveNowWidget issues={issues} />
+          <AiRecommendCard accent={current.accent} />
+        </div>
+
+        {/* 고정 카테고리 바로가기 — 상태와 무관하게 항상 같음. 모바일에서 상단 네비 역할 대신 */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {[
+            { icon: "🚗", label: heroCopy.navRoute, sub: "대중교통·주차", href: "#transport" },
+            { icon: "🍴", label: heroCopy.navFood, sub: "공연 전후 맛집", href: "#eat" },
+            { icon: "🛍️", label: heroCopy.navService, sub: "짐보관·편의시설", href: "#painpoints" },
+            { icon: "🤖", label: heroCopy.navAi, sub: "지금 필요한 정보", href: "#now-ai" },
+            { icon: "🎙️", label: heroCopy.liveLabel, sub: "실시간 현장 소식", href: "#live-issues" },
+            { icon: "💗", label: heroCopy.navMy, sub: "나의 공연 일정", href: "#my-event" },
+          ].map((c) => (
+            <a
+              key={c.label}
+              href={c.href}
+              className="arena-glass flex items-center gap-2 rounded-xl border border-white/10 p-3 text-left transition-colors hover:border-white/30 hover:bg-white/[0.06]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm" style={{ background: `${current.accent}22` }}>
+                {c.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block truncate text-xs">{c.label}</strong>
+                <span className="block truncate text-[9px] text-[var(--arena-muted)]">{c.sub}</span>
+              </span>
+              <span className="shrink-0 text-[var(--arena-muted)]">›</span>
+            </a>
           ))}
         </div>
 
-        <div className="arena-dashboard-grid">
-          <article id="today-show" className="arena-panel today-panel">
-            <div className="arena-panel-head"><h3>TODAY SHOW</h3><button>전체보기 ›</button></div>
-            <div className="today-content">
-              <div className="today-thumb"><span>♪</span></div>
-              <div className="today-copy">
-                <span className="today-chip">K-POP</span>
-                <h4>K-POP SPECIAL CONCERT</h4>
-                <p>2026. 03. 15 (일) 19:00</p>
-                <p>서울아레나(창동) · DEMO</p>
-                <div className="today-actions"><button>◉ 상세보기</button><button>⇧ 공유하기</button></div>
-              </div>
+        <div id="my-event" className="arena-glass rounded-2xl p-4" aria-label="MY EVENT 요약">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] tracking-widest text-[var(--arena-muted)]">{heroCopy.navMy}</p>
+              <strong className="mt-1 block text-sm">오늘의 공연 · 19:00</strong>
+              <p className="mt-1 text-[11px] text-[var(--arena-muted)]">{transport ? `${transport === "car" ? "자가용" : transport === "transit" ? "대중교통" : "택시"} 기준으로 NOW AI가 준비합니다.` : "이동수단을 고르면 필요한 것만 먼저 보여드립니다."}</p>
             </div>
-          </article>
-
-          <article className="arena-panel live-panel">
-            <div className="arena-panel-head"><h3><i className="live-dot" /> LIVE NOW <small>{activeIssues.length}건</small></h3><button onClick={() => scrollToId("live-issues")}>전체보기 ›</button></div>
-            <div className="live-list">
-              {(activeIssues.length ? activeIssues : seedLiveIssues(Date.now()).filter((i) => i.severity !== "general")).slice(0, 3).map((issue, idx) => (
-                <div key={issue.id} className="live-row"><span className={`issue-icon issue-${idx}`}>{idx === 0 ? "⚠" : idx === 1 ? "🚻" : "▣"}</span><b>{issue.title}</b><em>중요</em><small>{idx === 0 ? "10:24" : idx === 1 ? "10:18" : "10:05"}</small></div>
-              ))}
-            </div>
-          </article>
-
-          <article id="ai-panel" className="arena-panel ai-panel">
-            <div className="arena-panel-head"><h3>🤖 AI 추천 <small>맞춤형 추천 서비스</small></h3><button>전체보기 ›</button></div>
-            <div className="ai-inner">
-              <div>
-                <h4>공연 가는 날,<br />이런 서비스도 필요하신가요?</h4>
-                <p>AI가 당신의 상황에 맞는 정보를 추천해드립니다.</p>
-                <div className="ai-buttons">
-                  <button onClick={() => { setTransport("car"); scrollToId("park"); }}>주차 정보</button>
-                  <button onClick={() => scrollToId("eat")}>맛집 추천</button>
-                  <button onClick={() => scrollToId("toilet")}>짐보관</button>
-                  <button onClick={() => scrollToId("go-home")}>귀가 교통</button>
-                </div>
-              </div>
-              <div className="ai-robot">●<span>◡</span></div>
-            </div>
-          </article>
-        </div>
-
-        <div id="my-event" className="arena-promo-row">
-          <div className="arena-promo-large">
-            <div className="promo-art">♫</div>
-            <div><b>공연의 감동을<br />더 오래, 더 가까이</b><p>공연 전후, 아레나 주변의 다양한 즐길거리를 지금 바로 확인해보세요.</p></div>
-            <button>→</button>
+            <span className="rounded-full px-3 py-1 text-[10px] font-bold" style={{ background: `${current.accent}22`, color: current.accent }}>{badge}</span>
           </div>
-          <button onClick={() => scrollToId("eat")}><span>☕</span><b>맛집·카페</b><small>맛있는 즐거움</small></button>
-          <button onClick={() => scrollToId("toilet")}><span>🔒</span><b>짐보관 서비스</b><small>안전한 보관</small></button>
-          <button onClick={() => scrollToId("go-home")}><span>🚌</span><b>귀가 교통</b><small>택시·셔틀버스</small></button>
-          <button><span>🎁</span><b>이벤트·기념품</b><small>특별한 추억</small></button>
+        </div>
+
+        <div id="transport" className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <p className="mb-2 text-xs text-[var(--arena-muted)]">오늘 어떻게 오세요?</p>
+            <TransportSelector value={transport} onChange={setTransport} />
+            {!transport && <p className="mt-2 text-[10px]" style={{ color: current.accent }}>처음 한 번만 선택하면 다음 방문부터 기억합니다.</p>}
+          </div>
+          <button
+            onClick={() => transport && setNowOpen((v) => !v)}
+            disabled={!transport}
+            className="flex h-[68px] disabled:cursor-not-allowed disabled:opacity-40 flex-col items-center justify-center rounded-2xl px-6 font-bold"
+            style={{ background: current.accent, color: "#05060a" }}
+          >
+            <span className="text-lg" style={{ fontFamily: "var(--arena-font-display)" }}>NOW</span>
+            <small className="text-[9px]">지금 해야 할 일</small>
+          </button>
+        </div>
+
+        {nowOpen && predictions[0] && (
+          <div className="arena-glass-strong flex flex-col gap-2 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <strong className="text-sm">NOW AI가 먼저 골랐습니다</strong>
+              <p className="mt-1 text-xs text-[var(--arena-muted)]">
+                {predictions[0].title} → {predictions[0].detail}
+              </p>
+            </div>
+            <button
+              onClick={() => document.getElementById("now-ai")?.scrollIntoView({ behavior: "smooth" })}
+              className="shrink-0 rounded-full px-4 py-2 text-xs font-bold"
+              style={{ background: current.accent, color: "#05060a" }}
+            >
+              3가지 모두 보기
+            </button>
+          </div>
+        )}
+
+        <QuickActions state={stateKey} accent={current.accent} />
+
+        <div className="flex flex-col items-center gap-3">
+          <ModeSwitcher mode={mode} onChange={setMode} />
+          {mode === "auto" ? (
+            <p className="text-center text-[11px] text-[var(--arena-muted)]">
+              예시 공연(오늘 19:00~21:30) 기준 자동 계산 · 실 데이터 아님
+            </p>
+          ) : (
+            <StateSwitcher current={demoKey} onChange={setDemoKey} />
+          )}
         </div>
       </section>
 
-      <section className="arena-deep-sections">
-        <div className="section-lead"><span>MORE SERVICES</span><h2>필요할 때 바로 쓰는 공연 당일 서비스</h2><p>아래 기능은 실제 서비스 연동을 위한 상세 영역입니다.</p></div>
-        <LiveIssueBoard issues={issues} setIssues={setIssues} accent="#7c5cff" />
-        <ParkSection accent="#7c5cff" />
-        <EatArenaZoneSection accent="#20d6da" />
-        <ToiletNowSection accent="#ffd23f" />
-        <GoHomeSection accent="#20d6da" />
-        <CompanionTimeSection accent="#ff4d8d" />
-        <VoiceBoard accent="#57c9ff" />
-      </section>
+      <PredictiveAI predictions={predictions} accent={current.accent} />
+      <SmartAlertFeed stateKey={stateKey} accent={current.accent} />
+      <LiveIssueBoard issues={issues} setIssues={setIssues} accent={current.accent} />
+      <ParkSection accent={current.accent} />
+      <EatArenaZoneSection accent={current.accent} />
+      <ToiletNowSection accent={current.accent} />
+      <GoHomeSection accent={current.accent} />
 
-      <footer className="arena-footer">
-        <div><strong>ARENA NOW</strong><span>CHANGDONG SEOUL ARENA</span></div>
-        <nav><a href="#">이용약관</a><a href="#">개인정보처리방침</a><a href="#">고객센터</a><a href="#">제휴문의</a></nav>
-        <p>AI-generated concept image · 실제 시설 및 배치와 다를 수 있습니다.</p>
-        <small>© 2026 ARENA NOW · Concept Prototype</small>
-      </footer>
-
-      <button className="arena-settings-btn" onClick={() => setSettingsOpen(true)} aria-label="메인 문구 설정">⚙</button>
-      {settingsOpen && (
-        <div className="arena-settings-overlay" onClick={() => setSettingsOpen(false)}>
-          <aside className="arena-settings-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="settings-head"><div><b>메인 화면 텍스트 설정</b><small>브라우저에 저장됩니다.</small></div><button onClick={() => setSettingsOpen(false)}>×</button></div>
-            <label>상단 영문 카피<input value={copy.eyebrow} onChange={(e) => setCopy({ ...copy, eyebrow: e.target.value })} /></label>
-            <label>메인 제목 1줄<input value={copy.title1} onChange={(e) => setCopy({ ...copy, title1: e.target.value })} /></label>
-            <label>메인 제목 2줄<input value={copy.title2} onChange={(e) => setCopy({ ...copy, title2: e.target.value })} /></label>
-            <label>설명 문구<textarea rows={4} value={copy.subtitle} onChange={(e) => setCopy({ ...copy, subtitle: e.target.value })} /></label>
-            <label>메인 버튼<input value={copy.button} onChange={(e) => setCopy({ ...copy, button: e.target.value })} /></label>
-            <div className="settings-actions"><button onClick={() => setCopy(defaultCopy)}>초기화</button><button className="save" onClick={saveCopy}>저장</button></div>
-          </aside>
+      <details className="mx-auto w-full max-w-4xl px-6 py-6 group">
+        <summary className="arena-glass cursor-pointer list-none rounded-2xl p-5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-white/30">
+          전체 서비스 보기 <span className="float-right text-[var(--arena-muted)] group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="mt-4 overflow-hidden rounded-3xl border border-white/10">
+          <FrictionZeroSection accent={current.accent} />
+          <ShowDayTimeline accent={current.accent} />
+          <AroundChips accent={current.accent} />
+          <CompanionTimeSection accent={current.accent} />
         </div>
-      )}
+      </details>
+      <VoiceBoard accent={current.accent} />
+
+      <FloatingNavigator accent={current.accent} />
+
+      <PromoBanner accent={current.accent} />
+
+      <div className="mx-auto w-full max-w-4xl px-6 pb-8 pt-2 text-center">
+        <p className="text-xs text-[var(--arena-muted)]">
+          ARENA NOW는 공연정보 사이트가 아니라 공연 당일의 불편을 줄이는
+          Event-Day OS 컨셉입니다. 현재 표시되는 일정·혼잡·교통·매장 값은
+          실제 운영 데이터가 아닙니다. 조감도는 서울아레나를 그대로 재현하지
+          않은 미래형 아레나 컨셉 일러스트입니다.
+        </p>
+        <a
+          href={SHOWDAY_URL}
+          className="mt-4 inline-block rounded-full border px-6 py-2.5 text-xs"
+          style={{ borderColor: "var(--arena-border)" }}
+        >
+          SHOWDAY 메인으로 돌아가기
+        </a>
+      </div>
+
+      <SiteFooter />
+
+      <CopyEditor onChange={setHeroCopy} />
     </main>
   );
 }
