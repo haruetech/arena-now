@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { HeroCopy } from "@/lib/arena/heroCopy";
+import WeatherWidget from "./WeatherWidget";
 
 function Countdown({ target }: { target: Date }) {
   const [now, setNow] = useState<Date | null>(null);
@@ -99,19 +100,38 @@ export default function PremiumHero({
         </div>
 
         <div className="md:hidden">
-          <div className="relative aspect-[4/3] overflow-hidden">
+          <div className="relative min-h-[520px] overflow-hidden">
             <img src="/arena-main-bg.jpg" alt="ARENA NOW 아레나 컨셉 이미지" className="absolute inset-0 h-full w-full object-cover object-center" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#06111e] via-transparent to-black/20" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,8,18,.10)_0%,rgba(3,8,18,.18)_28%,rgba(3,8,18,.78)_72%,#06111e_100%)]" />
+            <div className="relative z-10 px-5 pb-5 pt-5">
+              <WeatherWidget mobile />
+              <div className="mt-7 max-w-[330px]">
+                <p className="text-[10px] font-bold tracking-[.24em] text-white/65">{copy.heroEyebrow}</p>
+                <h1 className="mt-3 text-[38px] font-black leading-[1.04] tracking-[-.045em] text-white">
+                  <span className="block">{copy.heroTitle1}</span>
+                  <span className="block" style={{ color: accent }}>{copy.heroTitle2}</span>
+                </h1>
+                <p className="mt-4 whitespace-pre-line text-[13px] leading-6 text-white/72">{copy.heroSub}</p>
+                <a href="#show" className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-black text-white shadow-lg" style={{ background: `linear-gradient(90deg, ${accent}, #2bd5ff)` }}>{copy.heroCta} →</a>
+              </div>
+            </div>
           </div>
-          <div className="bg-[#06111e] px-5 pb-5 pt-2">
-            <p className="text-[10px] font-bold tracking-[.22em] text-white/55">{copy.heroEyebrow}</p>
-            <h1 className="mt-3 text-[36px] font-black leading-[1.08] tracking-[-.04em] text-white">{copy.heroTitle1}<br/><span style={{ color: accent }}>{copy.heroTitle2}</span></h1>
-            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-white/68">{copy.heroSub}</p>
-            <a href="#show" className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-black text-white" style={{ background: `linear-gradient(90deg, ${accent}, #2bd5ff)` }}>{copy.heroCta} →</a>
-            <div className="mt-5 arena-live-card rounded-2xl border border-cyan-400/25 bg-[#07182a] p-4">
-              <div className="flex items-center gap-2 text-xs font-black"><span className="arena-pulse h-2 w-2 rounded-full bg-rose-500" /> NEXT SHOW</div>
-              <p className="mt-3 text-base font-black">세븐틴 월드투어 [BE THE SUN]</p>
-              <Countdown target={showStart} />
+
+          <div className="bg-[#06111e] px-4 pb-5 pt-3">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ["🚗", copy.navRoute, "#transport"],
+                ["🍴", copy.navFood, "#eat"],
+                ["🛍", copy.navService, "#painpoints"],
+                ["🤖", copy.navAi, "#now-ai"],
+                ["🎙", copy.liveLabel, "#live-issues"],
+                ["💗", copy.navMy, "#my-event"],
+              ].map(([icon, title, href]) => (
+                <a key={title} href={href} className="flex min-h-[82px] flex-col items-center justify-center rounded-2xl border border-cyan-300/18 bg-[#07182a] px-2 py-3 text-center shadow-[0_12px_30px_rgba(0,0,0,.25)] active:scale-[.98]">
+                  <span className="text-xl">{icon}</span>
+                  <strong className="mt-2 text-[11px] text-white">{title}</strong>
+                </a>
+              ))}
             </div>
           </div>
         </div>

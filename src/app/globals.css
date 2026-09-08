@@ -154,3 +154,31 @@ body {
     height: calc(100vh - 12px);
   }
 }
+
+/* Mobile-first dashboard refinements: do not shrink the desktop board into a phone. */
+@media (max-width: 767px) {
+  .arena-scope {
+    padding-bottom: 76px;
+    overflow-x: hidden;
+  }
+  .arena-scope #show {
+    padding-top: 14px;
+  }
+  .arena-scope #show > div {
+    gap: 12px;
+  }
+  .arena-scope #show article,
+  .arena-scope #show > div > * {
+    min-width: 0;
+  }
+  .arena-scope details,
+  .arena-scope section {
+    max-width: 100vw;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .arena-scope {
+    padding-bottom: 76px;
+  }
+}

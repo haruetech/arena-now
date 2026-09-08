@@ -15,10 +15,9 @@ type WeatherData = {
   icon?: string;
   source?: string;
   error?: string;
-  code?: string;
 };
 
-export default function WeatherWidget({ desktop = false }: { desktop?: boolean }) {
+export default function WeatherWidget({ desktop = false, mobile = false }: { desktop?: boolean; mobile?: boolean }) {
   const [data, setData] = useState<WeatherData | null>(null);
 
   useEffect(() => {
@@ -39,22 +38,33 @@ export default function WeatherWidget({ desktop = false }: { desktop?: boolean }
 
   const loading = data === null;
   const available = Boolean(data?.ok && data.temperature != null);
-  const temp = available ? `${Math.round(data!.temperature!)}°C` : "";
-  const condition = available ? (data?.condition || "현재 관측") : (loading ? "날씨 불러오는 중" : "기상청 연결 확인");
-  const icon = available ? (data?.icon || "🌡️") : (loading ? "⏳" : "🌡️");
+  const temp = available ? `${Math.round(data!.temperature!)}°C` : "--°C";
+  const condition = available ? (data?.condition || "현재 관측") : (loading ? "날씨 불러오는 중" : "잠시 후 다시 확인");
+  const icon = available ? (data?.icon || "🌡️") : (loading ? "⏳" : "🌤️");
+  const sub = available
+    ? `${condition}${data?.humidity != null ? ` · 습도 ${Math.round(data.humidity)}%` : ""}`
+    : "기상청 관측 연결 중";
 
-  const title = available
-    ? `기상청 ${data?.station || "서울"} 관측 · 습도 ${data?.humidity ?? "-"}% · 풍속 ${data?.windSpeed ?? "-"}m/s`
-    : `날씨를 불러오지 못했습니다${data?.error ? ` · ${data.error}` : ""}`;
+  if (mobile) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-cyan-300/20 bg-[#07182a]/95 px-4 py-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{icon}</span>
+          <div>
+            <p className="text-sm font-black text-white">서울아레나 {temp}</p>
+            <p className="mt-0.5 text-[10px] text-white/55">{sub}</p>
+          </div>
+        </div>
+        <span className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-bold text-white/65">실시간</span>
+      </div>
+    );
+  }
 
   if (desktop) {
     return (
-      <a
-        href="/api/weather"
-        target="_blank"
-        rel="noreferrer"
-        className="pointer-events-auto flex min-w-[178px] items-center gap-2 rounded-xl border border-cyan-300/20 bg-[#06111e]/95 px-3 py-2 text-[10px] text-white/65 shadow-xl backdrop-blur-md hover:border-cyan-300/40"
-        title={title}
+      <div
+        className="pointer-events-auto flex min-w-[178px] items-center gap-2 rounded-xl border border-cyan-300/20 bg-[#06111e]/95 px-3 py-2 text-[10px] text-white/65 shadow-xl backdrop-blur-md"
+        title={available ? `기상청 ${data?.station || "서울"} 관측` : data?.error || "기상청 연결 중"}
         aria-label="서울아레나 현재 날씨"
       >
         <span className="text-xl">{icon}</span>
@@ -62,12 +72,12 @@ export default function WeatherWidget({ desktop = false }: { desktop?: boolean }
           <p className="font-bold text-white">서울아레나 {temp}</p>
           <p>{condition}{available ? " · 기상청" : ""}</p>
         </div>
-      </a>
+      </div>
     );
   }
 
   return (
-    <div className="hidden items-center gap-2 text-[10px] text-[var(--arena-muted)] sm:flex" title={title}>
+    <div className="flex items-center gap-2 text-[10px] text-[var(--arena-muted)]" title={data?.error || "서울아레나 날씨"}>
       <span className="text-base">{icon}</span>
       <div className="leading-tight">
         <p className="text-white">서울아레나 {temp}</p>

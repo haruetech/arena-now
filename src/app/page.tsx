@@ -93,10 +93,10 @@ export default function ArenaNowPage() {
 
           <a href="#show" aria-label="검색" className="hidden h-9 w-9 items-center justify-center rounded-full text-lg text-white/75 hover:bg-white/5 md:flex">⌕</a>
           <a href="#my-event" aria-label="MY EVENT" className="hidden h-9 w-9 items-center justify-center rounded-full text-lg text-white/75 hover:bg-white/5 md:flex">♙</a>
-          <button onClick={() => document.getElementById("live-issues")?.scrollIntoView({ behavior: "smooth" })} className="flex items-center gap-2 rounded-full border border-white/15 bg-[#07182a] px-3 py-2 text-[11px] font-black text-white hover:border-cyan-300/35">
+          <button onClick={() => document.getElementById("live-issues")?.scrollIntoView({ behavior: "smooth" })} className="hidden items-center gap-2 rounded-full border border-white/15 bg-[#07182a] px-3 py-2 text-[11px] font-black text-white hover:border-cyan-300/35 sm:flex">
             <span className="arena-pulse h-2 w-2 rounded-full bg-rose-500" /> {heroCopy.liveLabel}
           </button>
-          <WeatherWidget />
+          <div className="hidden md:block"><WeatherWidget /></div>
           <button onClick={() => setMobileMenuOpen((v) => !v)} className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-white/80 lg:hidden" aria-label="메뉴">☰</button>
         </div>
         {mobileMenuOpen && (

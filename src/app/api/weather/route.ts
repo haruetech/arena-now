@@ -3,8 +3,15 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const KMA_URL = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php";
-const SEOUL_STATION = "108"; // 서울 ASOS. 서울아레나의 안정적인 현재 관측 기준점.
+const KMA_NOW_URL = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php";
+const KMA_RANGE_URL = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm3.php";
+const SEOUL_STATION = "108";
+
+const FIELD_ORDER = [
+  "TM","STN","WD","WS","GST_WD","GST_WS","GST_TM","PA","PS","PT","PR","TA","TD","HM","PV","RN","RN_DAY","RN_INT",
+  "SD_HR3","SD_DAY","SD_TOT","WC","WP","WW","CA_TOT","CA_MID","CH_MIN","CT","CT_TOP","CT_MID","CT_LOW","VS","SS","SI",
+  "ST_GD","TS","TE_005","TE_01","TE_02","TE_03","ST_SEA","WH","BF","IR","IX","RN_JUN",
+];
 
 function weatherLabel(rain: number | null, cloud: number | null) {
   if (rain !== null && rain > 0) return "비";
@@ -23,44 +30,49 @@ function iconFor(label: string) {
   return "🌡️";
 }
 
-function kstTm(hoursAgo = 1) {
-  // ASOS hourly data may be published with a short delay. Asking for the
-  // previous completed hour is more reliable than requesting the current minute.
-  const date = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+function kstDate(hoursAgo = 0) {
+  return new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+}
+
+function kstTm(date: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", hourCycle: "h23",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).formatToParts(date);
   const value = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
-  return `${value("year")}${value("month")}${value("day")}${value("hour")}00`;
+  return `${value("year")}${value("month")}${value("day")}${value("hour")}${value("minute")}`;
+}
+
+async function decodeKma(response: Response) {
+  const buffer = await response.arrayBuffer();
+  // KMA typ01 legacy endpoints commonly return Korean comments in EUC-KR.
+  // Decoding correctly also keeps error messages readable while ASCII data stays intact.
+  try {
+    return new TextDecoder("euc-kr").decode(buffer);
+  } catch {
+    return new TextDecoder("utf-8").decode(buffer);
+  }
 }
 
 function parseKmaText(text: string) {
-  const rawLines = text.split(/\r?\n/);
-  const lines = rawLines.map((v) => v.trim()).filter(Boolean);
-
-  // API error messages are plain text, so expose a useful server-side error.
-  const lower = text.toLowerCase();
-  if (lower.includes("auth") && (lower.includes("fail") || lower.includes("error"))) {
-    throw new Error("KMA authentication failed");
-  }
-
-  // help=1 normally provides '# TM STN ... TA ...'. Be tolerant of extra
-  // comments and spacing because the legacy text endpoint is not JSON.
+  const lines = text.split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
   const headerLine = [...lines].reverse().find(
     (line) => line.startsWith("#") && /\bTM\b/.test(line) && /\bSTN\b/.test(line) && /\bTA\b/.test(line)
   );
-  const dataLine = lines.find(
-    (line) => !line.startsWith("#") && /^\d{8,12}\s+\d+\b/.test(line)
-  );
+  const dataLines = lines.filter((line) => !line.startsWith("#") && /^\d{8,12}\s+108\b/.test(line));
+  const dataLine = dataLines.at(-1);
 
-  if (!headerLine || !dataLine) {
-    throw new Error(`KMA response format not recognized: ${text.slice(0, 160)}`);
+  if (!dataLine) {
+    const readable = lines.find((line) => !line.startsWith("#START") && !/^#-+$/.test(line) && !line.startsWith("#7777"));
+    throw new Error(readable ? `기상청 응답: ${readable.slice(0, 150)}` : "기상청 관측자료가 아직 준비되지 않았습니다.");
   }
 
-  const headers = headerLine.replace(/^#+\s*/, "").trim().split(/\s+/);
-  const values = dataLine.trim().split(/\s+/);
+  const values = dataLine.split(/\s+/);
+  const headers = headerLine
+    ? headerLine.replace(/^#+\s*/, "").trim().split(/\s+/)
+    : FIELD_ORDER;
+
   const row: Record<string, string> = {};
   headers.forEach((key, i) => { if (values[i] !== undefined) row[key] = values[i]; });
 
@@ -68,11 +80,13 @@ function parseKmaText(text: string) {
     const raw = row[key];
     if (raw == null || raw === "") return null;
     const v = Number(raw);
-    return Number.isFinite(v) && v > -90 ? v : null;
+    // KMA missing values are negative sentinels such as -9, -99, -999.
+    if (!Number.isFinite(v) || [-9, -99, -999, -9999].includes(v)) return null;
+    return v;
   };
 
   const temperature = num("TA");
-  if (temperature === null) throw new Error("KMA temperature is missing");
+  if (temperature === null) throw new Error("기상청 응답에서 기온 값을 찾지 못했습니다.");
 
   const humidity = num("HM");
   const windSpeed = num("WS");
@@ -95,52 +109,65 @@ function parseKmaText(text: string) {
   };
 }
 
-async function fetchObservation(authKey: string, hoursAgo: number) {
-  const url = new URL(KMA_URL);
-  url.searchParams.set("tm", kstTm(hoursAgo));
-  url.searchParams.set("stn", SEOUL_STATION);
-  url.searchParams.set("help", "1");
-  url.searchParams.set("authKey", authKey);
-
+async function request(url: URL) {
   const response = await fetch(url, {
     cache: "no-store",
     headers: { "User-Agent": "ARENA-NOW/1.0" },
   });
-  const text = await response.text();
-  if (!response.ok) throw new Error(`KMA HTTP ${response.status}: ${text.slice(0, 100)}`);
+  const text = await decodeKma(response);
+  if (!response.ok) throw new Error(`기상청 HTTP ${response.status}: ${text.slice(0, 120)}`);
   return parseKmaText(text);
+}
+
+async function fetchLatest(authKey: string) {
+  // 1) Best path: omit tm. KMA's official spec says this means current time.
+  const current = new URL(KMA_NOW_URL);
+  current.searchParams.set("stn", SEOUL_STATION);
+  current.searchParams.set("help", "0");
+  current.searchParams.set("authKey", authKey);
+  try { return await request(current); } catch (error) { console.error("KMA current observation failed", error); }
+
+  // 2) Retry recent completed hours.
+  for (const hoursAgo of [1, 2, 3, 4, 5, 6]) {
+    const url = new URL(KMA_NOW_URL);
+    const d = kstDate(hoursAgo);
+    d.setMinutes(0, 0, 0);
+    url.searchParams.set("tm", kstTm(d));
+    url.searchParams.set("stn", SEOUL_STATION);
+    url.searchParams.set("help", "0");
+    url.searchParams.set("authKey", authKey);
+    try { return await request(url); } catch (error) { console.error(`KMA -${hoursAgo}h failed`, error); }
+  }
+
+  // 3) Final fallback: range endpoint and use the latest returned row.
+  const end = kstDate(1); end.setMinutes(0, 0, 0);
+  const start = new Date(end.getTime() - 6 * 60 * 60 * 1000);
+  const range = new URL(KMA_RANGE_URL);
+  range.searchParams.set("tm1", kstTm(start));
+  range.searchParams.set("tm2", kstTm(end));
+  range.searchParams.set("stn", SEOUL_STATION);
+  range.searchParams.set("help", "0");
+  range.searchParams.set("authKey", authKey);
+  return request(range);
 }
 
 export async function GET() {
   const authKey = process.env.KMA_API_KEY?.trim();
   if (!authKey) {
+    return NextResponse.json({ ok: false, error: "KMA_API_KEY is not configured", code: "NO_KEY" }, { status: 503 });
+  }
+
+  try {
+    const weather = await fetchLatest(authKey);
     return NextResponse.json(
-      { ok: false, error: "KMA_API_KEY is not configured", code: "NO_KEY" },
-      { status: 503 }
+      { ok: true, ...weather },
+      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300" } }
+    );
+  } catch (error) {
+    console.error("KMA weather unavailable", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Weather data temporarily unavailable", code: "KMA_UNAVAILABLE" },
+      { status: 502 }
     );
   }
-
-  let lastError: unknown = null;
-  // Try the latest completed hours because some KMA station values arrive late.
-  for (const hoursAgo of [1, 2, 3, 4]) {
-    try {
-      const weather = await fetchObservation(authKey, hoursAgo);
-      return NextResponse.json(
-        { ok: true, ...weather },
-        { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300" } }
-      );
-    } catch (error) {
-      lastError = error;
-      console.error(`KMA weather attempt -${hoursAgo}h failed`, error);
-    }
-  }
-
-  return NextResponse.json(
-    {
-      ok: false,
-      error: lastError instanceof Error ? lastError.message : "Weather data temporarily unavailable",
-      code: "KMA_UNAVAILABLE",
-    },
-    { status: 502 }
-  );
 }
