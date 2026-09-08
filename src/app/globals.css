@@ -139,3 +139,18 @@ body {
     -webkit-user-drag: none;
   }
 }
+
+/* Keep the entire 3:2 approved desktop dashboard inside the first PC viewport.
+   This prevents TODAY SHOW / LIVE NOW / AI 추천 from being cropped at the bottom. */
+@media (min-width: 1024px) {
+  .arena-dashboard-board {
+    height: min(calc(100vh - 18px), 1024px);
+    max-height: 1024px;
+    max-width: min(100%, 1536px);
+  }
+}
+@media (min-width: 1024px) and (max-height: 860px) {
+  .arena-dashboard-board {
+    height: calc(100vh - 12px);
+  }
+}
